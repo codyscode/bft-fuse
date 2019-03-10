@@ -38,6 +38,13 @@ public class BFTFuse extends FuseStubFS {
         serviceProxy = new ServiceProxy(clientID, "config");
     }
 
+    public static void main(String[] args) {
+        int id = Integer.parseInt(args[0]);
+        String path = args[1];
+        BFTFuse fs = new BFTFuse(id);
+        fs.mount(Paths.get(path), true, true);
+    }
+
     @Override
     public int getattr(String path, FileStat stat) {
         logger.log(Level.INFO, "Called gettattr with path: " + path);
@@ -466,12 +473,5 @@ public class BFTFuse extends FuseStubFS {
 
         }
         return result;
-    }
-
-    public static void main(String[] args) {
-        int id = 1;
-        BFTFuse fs = new BFTFuse(id);
-        String path = "/home/cody/Desktop/mntp";
-        fs.mount(Paths.get(path), true, true);
     }
 }
