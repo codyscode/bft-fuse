@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile 'com.github.serceman:jnr-fuse:0.5.2.1'
+    compile files('bin/BFT-SMaRt.jar', 'lib/commons-codec-1.11.jar',
+        'lib/core-0.1.4.jar', 'lib/logback-classic-1.2.3.jar',
+        'lib/logback-core-1.2.3.jar', 'lib/netty-all-4.1.30.Final.jar',
+        'lib/slf4j-api-1.7.25.jar')
+}
