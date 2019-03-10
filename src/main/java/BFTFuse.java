@@ -40,40 +40,34 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int getattr(String path, FileStat stat) {
-        System.out.println("Called getattr in BFTFuse");
+        logger.log(Level.INFO, "Called gettattr with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.GETATTR);
             objOut.writeObject(path);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-            System.out.printf("Sent path %s to getattr and the reply length is %d\n", path, reply.length);
             if (reply.length == 0) {
                 return -ErrorCodes.EIO();
             }
             try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
                  ObjectInput objIn = new ObjectInputStream(byteIn)) {
                 result = (int)objIn.readObject();
+                //If result != 0 the stat is random garbage so we didn't send it
                 if (result == 0) {
-
-
-                    //stat.st_atim.tv_sec.set((long)objIn.readObject());
+                    //Omitting atime, ctime, mtime, dev, rdev, ino, since they can break consensus
                     stat.st_blocks.set((long)objIn.readObject());
                     stat.st_blksize.set((long)objIn.readObject());
-                    //stat.st_ctim.tv_sec.set((long)objIn.readObject());
-                    //stat.st_dev.set((long)objIn.readObject());
                     stat.st_gid.set((int)objIn.readObject());
-                    //stat.st_ino.set((long)objIn.readObject());
                     stat.st_mode.set((int) objIn.readObject());
-                    //stat.st_mtim.tv_sec.set((long)objIn.readObject());
                     stat.st_nlink.set((int) objIn.readObject());
-                    //stat.st_rdev.set((long)objIn.readObject());
                     stat.st_size.set((long)objIn.readObject());
                     stat.st_uid.set((int)objIn.readObject());
                 }
-
             }
         }catch (IOException | ClassNotFoundException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -85,17 +79,18 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int mkdir(String path, @mode_t long mode) {
-        System.out.println("Called mkdir in BFTFuse");
+        logger.log(Level.INFO, "Called mkdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.MKDIR);
             objOut.writeObject(path);
             objOut.writeObject(mode);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-            System.out.printf("Sent path %s to mkdir and the reply is length: %d\n", path, reply.length);
             if (reply.length == 0) {
                 return -ErrorCodes.EIO();
             }
@@ -111,16 +106,17 @@ public class BFTFuse extends FuseStubFS {
         return result;
     }
 
-
     @Override
     public int rename(String oldpath, String newpath) {
-        System.out.println("Called rename in BFTFuse");
+        logger.log(Level.INFO, "Called rename with old path: " + oldpath + " new path: " + newpath);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.RENAME);
             objOut.writeObject(oldpath);
             objOut.writeObject(newpath);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -141,12 +137,14 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int unlink(String path) {
-        System.out.println("Called unlink in BFTFuse");
+        logger.log(Level.INFO, "Called unlink with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.UNLINK);
             objOut.writeObject(path);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -167,13 +165,15 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int truncate(String path, long size) {
-        System.out.println("Called truncate in BFTFuse");
+        logger.log(Level.INFO, "Called truncate with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.TRUNCATE);
             objOut.writeObject(path);
             objOut.writeObject(size);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -194,13 +194,15 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int open(String path, FuseFileInfo fi) {
-        System.out.println("Called open in BFTFuse");
+        logger.log(Level.INFO, "Called open with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.OPEN);
             objOut.writeObject(path);
             objOut.writeObject(fi.flags.intValue());
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -221,13 +223,15 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo fi) {
-        System.out.println("Called create in BFTFuse");
+        logger.log(Level.INFO, "Called create with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.CREATE);
             objOut.writeObject(path);
             objOut.writeObject(mode);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -248,13 +252,15 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int chmod(String path, long mode) {
-        System.out.println("Called chmod in BFTFuse");
+        logger.log(Level.INFO, "Called chmod with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.CHMOD);
             objOut.writeObject(path);
             objOut.writeObject(mode);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -275,14 +281,16 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int chown(String path, long uid, long gid) {
-        System.out.println("Called chown in BFTFuse");
+        logger.log(Level.INFO, "Called chown with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.CHOWN);
             objOut.writeObject(path);
             objOut.writeObject(uid);
             objOut.writeObject(gid);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -301,20 +309,22 @@ public class BFTFuse extends FuseStubFS {
         return result;
     }
 
-
-
     @Override
     public int utimens(String path, Timespec[] timespec) {
-        System.out.println("Called utimens in BFTFuse");
+        logger.log(Level.INFO, "Called utimens with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+            //access and modification times are being updated but won't be returned by getattr because of
+            //the potential to break consensus when outside factors update them.
             long[] atimeval = {timespec[0].tv_sec.get(), timespec[0].tv_nsec.longValue() / 1000};
             long[] mtimeval = {timespec[1].tv_sec.get(), timespec[1].tv_nsec.longValue() / 1000};
+
             objOut.writeObject(FSOperation.UTIMES);
             objOut.writeObject(path);
             objOut.writeObject(atimeval);
             objOut.writeObject(mtimeval);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -335,35 +345,28 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int read(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
-
-        System.out.println("Called read in BFTFuse");
+        logger.log(Level.INFO, "Called read with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.READ);
             objOut.writeObject(path);
             objOut.writeObject(size);
             objOut.writeObject(offset);
             objOut.writeObject(fi.flags.intValue());
+
             objOut.flush();
             byteOut.flush();
-            System.out.println("Read made it 1");
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
             if (reply.length == 0) {
-                System.out.println("Read made it 2");
                 return -ErrorCodes.EIO();
             }
-            System.out.println("Read made it 3");
             try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
                  ObjectInput objIn = new ObjectInputStream(byteIn)) {
-                System.out.println("Read made it 4");
                 result = (int)objIn.readObject();
-                System.out.println("Read made it 5");
                 byte[] buffer = (byte[])objIn.readObject();
-                System.out.println("Read made it 6");
-                System.out.printf("The buffer in BFTFuse in read is %s\n", new String(buffer));
                 buf.put(0, buffer, 0, result);
-                System.out.printf("The buffer in BFTFuse in read (but after put call) is %s\n", new String(buffer));
             }
         } catch (IOException | ClassNotFoundException ex) {
             logger.log(Level.SEVERE, null, ex);
@@ -375,19 +378,20 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int write(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
-        System.out.println("Called write in BFTFuse");
+        logger.log(Level.INFO, "Called write with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
             byte[] buffer = new byte[(int)size];
             buf.get(0, buffer, 0, (int)size);
-            System.out.printf("The buffer in BFTFuse in write is %s\n", new String(buffer));
+
             objOut.writeObject(FSOperation.WRITE);
             objOut.writeObject(path);
             objOut.writeObject(buffer);
             objOut.writeObject(size);
             objOut.writeObject(offset);
             objOut.writeObject(fi.flags.intValue());
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
@@ -406,19 +410,19 @@ public class BFTFuse extends FuseStubFS {
         return result;
     }
 
-
     @Override
     public int rmdir(String path) {
-        System.out.println("Called rmdir in BFTFuse");
+        logger.log(Level.INFO, "Called rmdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(FSOperation.RMDIR);
             objOut.writeObject(path);
+
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-            System.out.printf("Sent path %s to rmdir and the reply is length: %d\n", path, reply.length);
             if (reply.length == 0) {
                 return -ErrorCodes.EIO();
             }
@@ -436,7 +440,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filter, @off_t long offset, FuseFileInfo fi) {
-        System.out.println("Called readdir in BFTFuse");
+        logger.log(Level.INFO, "Called readdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -445,7 +449,6 @@ public class BFTFuse extends FuseStubFS {
             objOut.flush();
             byteOut.flush();
             byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-            System.out.printf("The reply length from readdir is %d\n", reply.length);
             if (reply.length == 0) {
                 return -ErrorCodes.EIO();
             }
@@ -464,24 +467,7 @@ public class BFTFuse extends FuseStubFS {
         }
         return result;
     }
-/*
-    public void translateFileStat(jnr.posix.FileStat jnrStat, FileStat fuseStat) {
-        fuseStat.st_atim.tv_sec.set(jnrStat.atime());
-        //fuseStat.st_birthtime.set
-        fuseStat.st_blksize.set(jnrStat.blockSize());
-        fuseStat.st_blocks.set(jnrStat.blocks());
-        fuseStat.st_ctim.tv_sec.set(jnrStat.ctime());
-        fuseStat.st_dev.set(jnrStat.dev());
-        fuseStat.st_gid.set(jnrStat.gid());
-        fuseStat.st_ino.set(jnrStat.ino());
-        fuseStat.st_mode.set(jnrStat.mode());
-        fuseStat.st_mtim.tv_sec.set(jnrStat.mtime());
-        fuseStat.st_nlink.set(jnrStat.nlink());
-        fuseStat.st_rdev.set(jnrStat.rdev());
-        fuseStat.st_size.set(jnrStat.st_size());
-        fuseStat.st_uid.set(jnrStat.uid());
-    }
-*/
+
     public static void main(String[] args) {
         int id = 1;
         BFTFuse fs = new BFTFuse(id);
