@@ -22,6 +22,10 @@ hs_err_pid*
 
 build/
 
+replicas/
+
+mntp/
+
 gradle-app.setting
 
 !gradle-wrapper.jar
@@ -29,4 +33,5 @@ gradle-app.setting
 !BFT-SMaRt.jar
 
 !lib/*.jar
+
 

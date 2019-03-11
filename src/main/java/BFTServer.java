@@ -25,6 +25,7 @@ public class BFTServer extends DefaultRecoverable {
     private Logger logger;
     POSIX posix;
     String rootPath;
+    int i = 1;
 
     public BFTServer(int id, String rootPath) {
         logger = Logger.getLogger(BFTServer.class.getName());

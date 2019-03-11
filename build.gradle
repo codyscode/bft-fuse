@@ -19,3 +19,12 @@ dependencies {
         'lib/logback-core-1.2.3.jar', 'lib/netty-all-4.1.30.Final.jar',
         'lib/slf4j-api-1.7.25.jar')
 }
+
+task libs(type: Sync) {
+	from configurations.runtime
+	into "$buildDir/libs"
+}
+
+
+
+
