@@ -28,4 +28,5 @@ gradle-app.setting
 
 !BFT-SMaRt.jar
 
+!lib/*.jar
 
