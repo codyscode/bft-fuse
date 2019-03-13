@@ -32,17 +32,21 @@ public class BFTFuse extends FuseStubFS {
     POSIX posix;
     ServiceProxy serviceProxy;
 
+    public static void main(String[] args) {
+        if(args.length < 2) {
+            System.out.println("Use: java BFTFuse <clientID> <mountPoint>");
+            System.exit(-1);
+        }
+        int id = Integer.parseInt(args[0]);
+        String mountPoint = args[1];
+        BFTFuse fs = new BFTFuse(id);
+        fs.mount(Paths.get(mountPoint), true, true);
+    }
+
     public BFTFuse(int clientID) {
         logger = Logger.getLogger(BFTFuse.class.getName());
         posix = POSIXFactory.getPOSIX();
         serviceProxy = new ServiceProxy(clientID, "config");
-    }
-
-    public static void main(String[] args) {
-        int id = Integer.parseInt(args[0]);
-        String path = args[1];
-        BFTFuse fs = new BFTFuse(id);
-        fs.mount(Paths.get(path), true, true);
     }
 
     @Override

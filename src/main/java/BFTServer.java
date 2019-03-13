@@ -25,21 +25,20 @@ public class BFTServer extends DefaultRecoverable {
     private Logger logger;
     POSIX posix;
     String rootPath;
-    int i = 1;
+
+    public static void main(String[] args) {
+        if(args.length < 2) {
+            System.out.println("Use: java BFTServer <serverID> <rootPath>");
+            System.exit(-1);
+        }
+        new BFTServer(Integer.parseInt(args[0]), args[1]);
+    }
 
     public BFTServer(int id, String rootPath) {
         logger = Logger.getLogger(BFTServer.class.getName());
         posix = POSIXFactory.getPOSIX();
         this.rootPath = rootPath;
          new ServiceReplica(id, this, this);
-    }
-
-    public static void main(String[] args) {
-        if(args.length < 1) {
-            System.out.println("Use: java BFTServer <processId>");
-            System.exit(-1);
-        }
-        new BFTServer(Integer.parseInt(args[0]), args[1]);
     }
 
     @SuppressWarnings("unchecked")
@@ -57,57 +56,20 @@ public class BFTServer extends DefaultRecoverable {
                  ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
                  ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
 
-                String path;
+
                 int result, flags;
                 long mode, size, offset, uid, gid;
                 FSOperation operation = (FSOperation) objIn.readObject();
+                String path = (String)objIn.readObject();
+                //Removes any nefarious ../ attempts, then appends to path of the "root" folder
+                path = Paths.get(path).normalize().toString();
+                path = rootPath + path;
                 switch (operation) {
-
-                    case GETATTR:
-                        path = rootPath + (String) objIn.readObject();
-                        logger.log(Level.INFO, "Called GETATTR with path: " + path);
-                        jnr.posix.FileStat jnrStat = posix.allocateStat();
-                        result = posix.lstat(path, jnrStat);
-                        if (result < 0) {
-                            result = -posix.errno();
-                        }
-                        objOut.writeObject(result);
-                        //If result != 0 jnrStat will be random garbage and mess up the consensus
-                        if (result == 0) {
-                            //Omitting atime, ctime, dev, ino, mtime, rdev, since they can break consensus
-                            objOut.writeObject(jnrStat.blocks()); //long
-                            objOut.writeObject(jnrStat.blockSize()); //long
-                            objOut.writeObject(jnrStat.gid()); //int
-                            objOut.writeObject(jnrStat.mode()); //int
-                            objOut.writeObject(jnrStat.nlink()); //int
-                            objOut.writeObject(jnrStat.st_size()); //long
-                            objOut.writeObject(jnrStat.uid()); //int
-                        }
-                        hasReply = true;
-                        break;
-
-                    case READDIR:
-                        path = rootPath + (String) objIn.readObject();
-                        logger.log(Level.INFO, "Called READDIR with path: " + path);
-                        File dir = new File(path);
-                        if (!dir.exists()) {
-                            result = -ErrorCodes.ENOENT();
-                        } else {
-                            result = 0;
-                        }
-                        String[] filenames = new File(path).list();
-                        //Since filenames aren't guaranteed an order;
-                        Arrays.sort(filenames);
-                        objOut.writeObject(result);
-                        objOut.writeObject(filenames);
-                        hasReply = true;
-                        break;
 
 
                     case MKDIR:
-                        path = rootPath + (String) objIn.readObject();
-                        mode = (long) objIn.readObject();
                         logger.log(Level.INFO, "Called MKDIR with path: " + path);
+                        mode = (long) objIn.readObject();
                         result = posix.mkdir(path, (int) mode);
                         if (result < 0) {
                             result = -posix.errno();
@@ -117,7 +79,6 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case RMDIR:
-                        path = rootPath + (String) objIn.readObject();
                         logger.log(Level.INFO, "Called RMDIR with path: " + path);
                         result = posix.rmdir(path);
                         if (result < 0) {
@@ -128,10 +89,9 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case UTIMES:
-                        path = rootPath + (String) objIn.readObject();
+                        logger.log(Level.INFO, "Called UTIMES with path: " + path);
                         long[] atimeval = (long[]) objIn.readObject();
                         long[] mtimeval = (long[]) objIn.readObject();
-                        logger.log(Level.INFO, "Called UTIMES with path: " + path);
                         result = posix.utimes(path, atimeval, mtimeval);
                         if (result < 0) {
                             result = -posix.errno();
@@ -141,10 +101,9 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case RENAME:
-                        String oldPath = rootPath + (String) objIn.readObject();
+                        logger.log(Level.INFO, "Called RENAME with path: " + path);
                         String newPath = rootPath + (String) objIn.readObject();
-                        logger.log(Level.INFO, "Called RENAME with old path: " + oldPath + " new path: " + newPath);
-                        result = posix.rename(oldPath, newPath);
+                        result = posix.rename(path, newPath);
                         if (result < 0) {
                             result = -posix.errno();
                         }
@@ -153,9 +112,8 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CHMOD:
-                        path = rootPath + (String) objIn.readObject();
-                        mode = (long) objIn.readObject();
                         logger.log(Level.INFO, "Called CHMOD with path: " + path);
+                        mode = (long) objIn.readObject();
                         result = posix.chmod(path, (int) mode);
                         if (result < 0) {
                             result = -posix.errno();
@@ -165,10 +123,9 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CHOWN:
-                        path = rootPath + (String) objIn.readObject();
+                        logger.log(Level.INFO, "Called CHOWN with path: " + path);
                         uid = (long) objIn.readObject();
                         gid = (long) objIn.readObject();
-                        logger.log(Level.INFO, "Called CHOWN with path: " + path);
                         result = posix.chown(path, (int) uid, (int) gid);
                         if (result < 0) {
                             result = -posix.errno();
@@ -178,7 +135,6 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case UNLINK:
-                        path = rootPath + (String) objIn.readObject();
                         logger.log(Level.INFO, "Called UNLINK with path: " + path);
                         result = posix.unlink(path);
                         if (result < 0) {
@@ -189,9 +145,8 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CREATE:
-                        path = rootPath + (String) objIn.readObject();
-                        mode = (long) objIn.readObject();
                         logger.log(Level.INFO, "Called CREATE with path: " + path);
+                        mode = (long) objIn.readObject();
                         if (new File(path).exists()) {
                             result = -ErrorCodes.EEXIST();
                         } else {
@@ -210,9 +165,8 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case TRUNCATE:
-                        path = rootPath + (String) objIn.readObject();
-                        size = (long) objIn.readObject();
                         logger.log(Level.INFO, "Called TRUNCATE with path: " + path);
+                        size = (long) objIn.readObject();
                         result = posix.truncate(path, size);
                         if (result < 0) {
                             result = -posix.errno();
@@ -222,15 +176,14 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case OPEN:
-                        path = rootPath + (String) objIn.readObject();
-                        flags = (int) objIn.readObject();
                         logger.log(Level.INFO, "Called OPEN with path: " + path);
+                        flags = (int) objIn.readObject();
                         result = posix.open(path, flags, OpenFlags.O_RDONLY.intValue());
                         if (result < 0) {
                             result = -posix.errno();
                         } else {
                             posix.close(result);
-                            //don't care about file descriptors and the ones returned  mess things up
+                            //don't care about file descriptors and the ones returned mess things up
                             result = 0;
                         }
                         objOut.writeObject(result);
@@ -238,11 +191,10 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case READ:
-                        path = rootPath + (String) objIn.readObject();
+                        logger.log(Level.INFO, "Called READ with path: " + path);
                         size = (long) objIn.readObject();
                         offset = (long) objIn.readObject();
                         flags = (int) objIn.readObject();
-                        logger.log(Level.INFO, "Called READ with path: " + path);
                         byte[] buffer = new byte[(int) size];
                         int fd = posix.open(path, flags, OpenFlags.O_RDONLY.intValue());
                         if (fd < 0) {
@@ -263,12 +215,11 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case WRITE:
-                        path = rootPath + (String) objIn.readObject();
+                        logger.log(Level.INFO, "Called WRITE with path: " + path);
                         buffer = (byte[]) objIn.readObject();
                         size = (long) objIn.readObject();
                         offset = (long) objIn.readObject();
                         flags = (int) objIn.readObject();
-                        logger.log(Level.INFO, "Called WRITE with path: " + path);
                         fd = posix.open(path, flags, OpenFlags.O_RDWR.intValue());
                         if (fd < 0) {
                             result = -posix.errno();
@@ -280,6 +231,44 @@ public class BFTServer extends DefaultRecoverable {
                             posix.close(fd);
                         }
                         objOut.writeObject(result);
+                        hasReply = true;
+                        break;
+
+                    case GETATTR:
+                        logger.log(Level.INFO, "Called GETATTR with path: " + path);
+                        jnr.posix.FileStat jnrStat = posix.allocateStat();
+                        result = posix.lstat(path, jnrStat);
+                        if (result < 0) {
+                            result = -posix.errno();
+                        }
+                        objOut.writeObject(result);
+                        //If result != 0 jnrStat will be random garbage and mess up the consensus, so don't send
+                        if (result == 0) {
+                            //Omitting atime, ctime, dev, ino, mtime, rdev, since they can break consensus
+                            objOut.writeObject(jnrStat.blocks()); //long
+                            objOut.writeObject(jnrStat.blockSize()); //long
+                            objOut.writeObject(jnrStat.gid()); //int
+                            objOut.writeObject(jnrStat.mode()); //int
+                            objOut.writeObject(jnrStat.nlink()); //int
+                            objOut.writeObject(jnrStat.st_size()); //long
+                            objOut.writeObject(jnrStat.uid()); //int
+                        }
+                        hasReply = true;
+                        break;
+
+                    case READDIR:
+                        logger.log(Level.INFO, "Called READDIR with path: " + path);
+                        File dir = new File(path);
+                        if (!dir.exists()) {
+                            result = -ErrorCodes.ENOENT();
+                        } else {
+                            result = 0;
+                        }
+                        String[] filenames = dir.list();
+                        //Since filenames aren't guaranteed an order
+                        Arrays.sort(filenames);
+                        objOut.writeObject(result);
+                        objOut.writeObject(filenames);
                         hasReply = true;
                         break;
 
