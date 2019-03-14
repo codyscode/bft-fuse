@@ -9,6 +9,8 @@ import jnr.ffi.types.off_t;
 import jnr.ffi.types.size_t;
 import jnr.posix.POSIX;
 import jnr.posix.POSIXFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.serce.jnrfuse.ErrorCodes;
 import ru.serce.jnrfuse.FuseFillDir;
 import ru.serce.jnrfuse.FuseStubFS;
@@ -19,39 +21,44 @@ import ru.serce.jnrfuse.struct.Timespec;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 
 public class BFTFuse extends FuseStubFS {
 
-    Logger logger;
+    private Logger logger;
     POSIX posix;
     ServiceProxy serviceProxy;
 
     public static void main(String[] args) {
         if(args.length < 2) {
-            System.out.println("Use: java BFTFuse <clientID> <mountPoint>");
+            System.out.println("Use: java BFTFuse <clientID> <mountPath>");
             System.exit(-1);
         }
-        int id = Integer.parseInt(args[0]);
-        String mountPoint = args[1];
-        BFTFuse fs = new BFTFuse(id);
-        fs.mount(Paths.get(mountPoint), true, true);
+        new BFTFuse(Integer.parseInt(args[0]), args[1]);
     }
 
-    public BFTFuse(int clientID) {
-        logger = Logger.getLogger(BFTFuse.class.getName());
+    public BFTFuse(int clientID, String mountPath) {
+        logger = LoggerFactory.getLogger(this.getClass());
+        Path  mountPoint = Paths.get(mountPath);
+        try {
+            mountPoint = mountPoint.toRealPath();
+        } catch (IOException e) {
+            logger.error("Unable to resolve provided path: ", e);
+            System.exit(-1);;
+        }
         posix = POSIXFactory.getPOSIX();
         serviceProxy = new ServiceProxy(clientID, "config");
+        this.mount(mountPoint, true, true);
     }
 
     @Override
     public int getattr(String path, FileStat stat) {
-        logger.log(Level.INFO, "Called gettattr with path: " + path);
+        logger.debug("Called gettattr with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -81,7 +88,7 @@ public class BFTFuse extends FuseStubFS {
                 }
             }
         }catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -90,7 +97,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int mkdir(String path, @mode_t long mode) {
-        logger.log(Level.INFO, "Called mkdir with path: " + path);
+        logger.debug("Called mkdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -110,7 +117,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -119,7 +126,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int rename(String oldpath, String newpath) {
-        logger.log(Level.INFO, "Called rename with old path: " + oldpath + " new path: " + newpath);
+        logger.debug("Called rename with old path: " + oldpath + " new path: " + newpath);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -139,7 +146,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -148,7 +155,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int unlink(String path) {
-        logger.log(Level.INFO, "Called unlink with path: " + path);
+        logger.debug("Called unlink with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -167,7 +174,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -176,7 +183,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int truncate(String path, long size) {
-        logger.log(Level.INFO, "Called truncate with path: " + path);
+        logger.debug("Called truncate with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -196,7 +203,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -205,7 +212,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int open(String path, FuseFileInfo fi) {
-        logger.log(Level.INFO, "Called open with path: " + path);
+        logger.debug("Called open with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -225,7 +232,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -234,7 +241,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo fi) {
-        logger.log(Level.INFO, "Called create with path: " + path);
+        logger.debug("Called create with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -254,7 +261,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -263,7 +270,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int chmod(String path, long mode) {
-        logger.log(Level.INFO, "Called chmod with path: " + path);
+        logger.debug("Called chmod with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -283,7 +290,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -292,7 +299,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int chown(String path, long uid, long gid) {
-        logger.log(Level.INFO, "Called chown with path: " + path);
+        logger.debug("Called chown with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -313,7 +320,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -322,7 +329,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int utimens(String path, Timespec[] timespec) {
-        logger.log(Level.INFO, "Called utimens with path: " + path);
+        logger.debug("Called utimens with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -347,7 +354,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -356,7 +363,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int read(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
-        logger.log(Level.INFO, "Called read with path: " + path);
+        logger.debug("Called read with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -380,7 +387,7 @@ public class BFTFuse extends FuseStubFS {
                 buf.put(0, buffer, 0, result);
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -389,7 +396,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int write(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
-        logger.log(Level.INFO, "Called write with path: " + path);
+        logger.debug("Called write with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -414,7 +421,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -423,7 +430,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int rmdir(String path) {
-        logger.log(Level.INFO, "Called rmdir with path: " + path);
+        logger.debug("Called rmdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -442,7 +449,7 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }
@@ -451,7 +458,7 @@ public class BFTFuse extends FuseStubFS {
 
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filter, @off_t long offset, FuseFileInfo fi) {
-        logger.log(Level.INFO, "Called readdir with path: " + path);
+        logger.debug("Called readdir with path: " + path);
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
@@ -472,7 +479,7 @@ public class BFTFuse extends FuseStubFS {
                 }
             }
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
             result = -ErrorCodes.EIO();
 
         }

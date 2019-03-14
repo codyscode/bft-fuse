@@ -24,7 +24,7 @@ build/
 
 replicas/
 
-mntp/
+clients/
 
 gradle-app.setting
 

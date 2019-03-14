@@ -7,6 +7,8 @@ import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import jnr.constants.platform.OpenFlags;
 import jnr.posix.POSIX;
 import jnr.posix.POSIXFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.serce.jnrfuse.ErrorCodes;
 
 import java.io.*;
@@ -16,8 +18,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class BFTServer extends DefaultRecoverable {
@@ -35,10 +35,15 @@ public class BFTServer extends DefaultRecoverable {
     }
 
     public BFTServer(int id, String rootPath) {
-        logger = Logger.getLogger(BFTServer.class.getName());
+        logger = LoggerFactory.getLogger(this.getClass());
+        try {
+            this.rootPath = Paths.get(rootPath).toRealPath().toString();
+        } catch (IOException e) {
+            logger.error("Unable to resolve provided path: ", e);
+            System.exit(-1);
+        }
         posix = POSIXFactory.getPOSIX();
-        this.rootPath = rootPath;
-         new ServiceReplica(id, this, this);
+        new ServiceReplica(id, this, this);
     }
 
     @SuppressWarnings("unchecked")
@@ -61,14 +66,17 @@ public class BFTServer extends DefaultRecoverable {
                 long mode, size, offset, uid, gid;
                 FSOperation operation = (FSOperation) objIn.readObject();
                 String path = (String)objIn.readObject();
+                System.out.println("Path 1 is " + path);
                 //Removes any nefarious ../ attempts, then appends to path of the "root" folder
                 path = Paths.get(path).normalize().toString();
+                System.out.println("Path 2 is " + path);
                 path = rootPath + path;
+                System.out.println("Path 3 is " + path);
                 switch (operation) {
 
 
                     case MKDIR:
-                        logger.log(Level.INFO, "Called MKDIR with path: " + path);
+                        logger.debug("Called MKDIR with path: " + path);
                         mode = (long) objIn.readObject();
                         result = posix.mkdir(path, (int) mode);
                         if (result < 0) {
@@ -79,7 +87,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case RMDIR:
-                        logger.log(Level.INFO, "Called RMDIR with path: " + path);
+                        logger.debug("Called RMDIR with path: " + path);
                         result = posix.rmdir(path);
                         if (result < 0) {
                             result = -posix.errno();
@@ -89,7 +97,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case UTIMES:
-                        logger.log(Level.INFO, "Called UTIMES with path: " + path);
+                        logger.debug("Called UTIMES with path: " + path);
                         long[] atimeval = (long[]) objIn.readObject();
                         long[] mtimeval = (long[]) objIn.readObject();
                         result = posix.utimes(path, atimeval, mtimeval);
@@ -101,7 +109,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case RENAME:
-                        logger.log(Level.INFO, "Called RENAME with path: " + path);
+                        logger.debug("Called RENAME with path: " + path);
                         String newPath = rootPath + (String) objIn.readObject();
                         result = posix.rename(path, newPath);
                         if (result < 0) {
@@ -112,7 +120,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CHMOD:
-                        logger.log(Level.INFO, "Called CHMOD with path: " + path);
+                        logger.debug("Called CHMOD with path: " + path);
                         mode = (long) objIn.readObject();
                         result = posix.chmod(path, (int) mode);
                         if (result < 0) {
@@ -123,7 +131,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CHOWN:
-                        logger.log(Level.INFO, "Called CHOWN with path: " + path);
+                        logger.debug("Called CHOWN with path: " + path);
                         uid = (long) objIn.readObject();
                         gid = (long) objIn.readObject();
                         result = posix.chown(path, (int) uid, (int) gid);
@@ -135,7 +143,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case UNLINK:
-                        logger.log(Level.INFO, "Called UNLINK with path: " + path);
+                        logger.debug("Called UNLINK with path: " + path);
                         result = posix.unlink(path);
                         if (result < 0) {
                             result = -posix.errno();
@@ -145,7 +153,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case CREATE:
-                        logger.log(Level.INFO, "Called CREATE with path: " + path);
+                        logger.debug("Called CREATE with path: " + path);
                         mode = (long) objIn.readObject();
                         if (new File(path).exists()) {
                             result = -ErrorCodes.EEXIST();
@@ -165,7 +173,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case TRUNCATE:
-                        logger.log(Level.INFO, "Called TRUNCATE with path: " + path);
+                        logger.debug("Called TRUNCATE with path: " + path);
                         size = (long) objIn.readObject();
                         result = posix.truncate(path, size);
                         if (result < 0) {
@@ -176,7 +184,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case OPEN:
-                        logger.log(Level.INFO, "Called OPEN with path: " + path);
+                        logger.debug("Called OPEN with path: " + path);
                         flags = (int) objIn.readObject();
                         result = posix.open(path, flags, OpenFlags.O_RDONLY.intValue());
                         if (result < 0) {
@@ -191,7 +199,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case READ:
-                        logger.log(Level.INFO, "Called READ with path: " + path);
+                        logger.debug("Called READ with path: " + path);
                         size = (long) objIn.readObject();
                         offset = (long) objIn.readObject();
                         flags = (int) objIn.readObject();
@@ -215,7 +223,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case WRITE:
-                        logger.log(Level.INFO, "Called WRITE with path: " + path);
+                        logger.debug("Called WRITE with path: " + path);
                         buffer = (byte[]) objIn.readObject();
                         size = (long) objIn.readObject();
                         offset = (long) objIn.readObject();
@@ -235,7 +243,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case GETATTR:
-                        logger.log(Level.INFO, "Called GETATTR with path: " + path);
+                        logger.debug("Called GETATTR with path: " + path);
                         jnr.posix.FileStat jnrStat = posix.allocateStat();
                         result = posix.lstat(path, jnrStat);
                         if (result < 0) {
@@ -257,7 +265,7 @@ public class BFTServer extends DefaultRecoverable {
                         break;
 
                     case READDIR:
-                        logger.log(Level.INFO, "Called READDIR with path: " + path);
+                        logger.debug("Called READDIR with path: " + path);
                         File dir = new File(path);
                         if (!dir.exists()) {
                             result = -ErrorCodes.ENOENT();
@@ -282,7 +290,7 @@ public class BFTServer extends DefaultRecoverable {
                 }
 
             } catch (IOException | ClassNotFoundException ex) {
-                logger.log(Level.SEVERE, null, ex);
+                logger.error(null, ex);
             }
         }
         return replies;
@@ -314,14 +322,14 @@ public class BFTServer extends DefaultRecoverable {
             }
 
         } catch (IOException | ClassNotFoundException ex) {
-            logger.log(Level.SEVERE, null, ex);
+            logger.error(null, ex);
         }
         return reply;
     }
 
     @Override
     public byte[] getSnapshot() {
-        logger.log(Level.INFO, "Called getSnapshot");
+        logger.debug("Called getSnapshot");
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
 
@@ -333,7 +341,7 @@ public class BFTServer extends DefaultRecoverable {
                 String relativeRoot = absolutePath.replace(rootPath, "");
                 jnr.posix.FileStat jnrStat = posix.allocateStat();
                 if (posix.lstat(absolutePath, jnrStat) < 0) {
-                    logger.log(Level.SEVERE, "Error getting FileStat in getSnapshot");
+                    logger.error("Error getting FileStat in getSnapshot");
                 }
                 objOut.writeObject(relativeRoot);
                 objOut.writeObject(jnrStat.gid()); //int
@@ -351,7 +359,7 @@ public class BFTServer extends DefaultRecoverable {
             return byteOut.toByteArray();
 
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error while taking snapshot", e);
+            logger.error("Error while taking snapshot", e);
         }
         return new byte[0];
     }
@@ -359,7 +367,7 @@ public class BFTServer extends DefaultRecoverable {
     @SuppressWarnings("unchecked")
     @Override
     public void installSnapshot(byte[] state) {
-        logger.log(Level.INFO, "Called installSnapshot");
+        logger.debug("Called installSnapshot");
         try (ByteArrayInputStream byteIn = new ByteArrayInputStream(state);
              ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
@@ -392,7 +400,7 @@ public class BFTServer extends DefaultRecoverable {
                 posix.chown(absolutePath, uid, gid);
             }
         } catch (IOException | ClassNotFoundException e) {
-            logger.log(Level.SEVERE, "Error while installing snapshot", e);
+            logger.error("Error while installing snapshot", e);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
