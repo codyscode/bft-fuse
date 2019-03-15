@@ -1,9 +1,5 @@
-
-
 import bftsmart.tom.ServiceProxy;
-import jnr.ffi.Platform;
 import jnr.ffi.Pointer;
-import jnr.ffi.Runtime;
 import jnr.ffi.types.mode_t;
 import jnr.ffi.types.off_t;
 import jnr.ffi.types.size_t;
@@ -16,17 +12,10 @@ import ru.serce.jnrfuse.FuseFillDir;
 import ru.serce.jnrfuse.FuseStubFS;
 import ru.serce.jnrfuse.struct.FileStat;
 import ru.serce.jnrfuse.struct.FuseFileInfo;
-import ru.serce.jnrfuse.struct.Statvfs;
 import ru.serce.jnrfuse.struct.Timespec;
-
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-
-
 
 public class BFTFuse extends FuseStubFS {
 
@@ -77,9 +66,8 @@ public class BFTFuse extends FuseStubFS {
                 result = (int)objIn.readObject();
                 //If result != 0 the stat is random garbage so we didn't send it
                 if (result == 0) {
-                    //Omitting atime, ctime, mtime, dev, rdev, ino, since they can break consensus
-                    stat.st_blocks.set((long)objIn.readObject());
-                    stat.st_blksize.set((long)objIn.readObject());
+                    //Omitting atime, ctime, blocks, blockSize, mtime, dev, rdev, ino, since they can break
+                    //consensus. Some of these could potentially be added back depending on the configuration
                     stat.st_gid.set((int)objIn.readObject());
                     stat.st_mode.set((int) objIn.readObject());
                     stat.st_nlink.set((int) objIn.readObject());
@@ -90,7 +78,6 @@ public class BFTFuse extends FuseStubFS {
         }catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -119,7 +106,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -148,7 +134,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -176,7 +161,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -205,7 +189,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -234,7 +217,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -263,7 +245,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -292,7 +273,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -322,7 +302,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -333,7 +312,7 @@ public class BFTFuse extends FuseStubFS {
         int result;
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
-            //access and modification times are being updated but won't be returned by getattr because of
+            //access and modification times are being updated but aren't being returned by getattr because of
             //the potential to break consensus when outside factors update them.
             long[] atimeval = {timespec[0].tv_sec.get(), timespec[0].tv_nsec.longValue() / 1000};
             long[] mtimeval = {timespec[1].tv_sec.get(), timespec[1].tv_nsec.longValue() / 1000};
@@ -356,7 +335,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -389,7 +367,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -423,7 +400,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -451,7 +427,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }
@@ -481,7 +456,6 @@ public class BFTFuse extends FuseStubFS {
         } catch (IOException | ClassNotFoundException ex) {
             logger.error(null, ex);
             result = -ErrorCodes.EIO();
-
         }
         return result;
     }

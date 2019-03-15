@@ -10,7 +10,6 @@ import jnr.posix.POSIXFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.serce.jnrfuse.ErrorCodes;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,26 +53,20 @@ public class BFTServer extends DefaultRecoverable {
         int index = 0;
         for (byte[] command: commands) {
 
-
             boolean hasReply = false;
             try (ByteArrayInputStream byteIn = new ByteArrayInputStream(command);
                  ObjectInput objIn = new ObjectInputStream(byteIn);
                  ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
                  ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
 
-
                 int result, flags;
                 long mode, size, offset, uid, gid;
                 FSOperation operation = (FSOperation) objIn.readObject();
                 String path = (String)objIn.readObject();
-                System.out.println("Path 1 is " + path);
                 //Removes any nefarious ../ attempts, then appends to path of the "root" folder
                 path = Paths.get(path).normalize().toString();
-                System.out.println("Path 2 is " + path);
                 path = rootPath + path;
-                System.out.println("Path 3 is " + path);
                 switch (operation) {
-
 
                     case MKDIR:
                         logger.debug("Called MKDIR with path: " + path);
@@ -252,9 +245,8 @@ public class BFTServer extends DefaultRecoverable {
                         objOut.writeObject(result);
                         //If result != 0 jnrStat will be random garbage and mess up the consensus, so don't send
                         if (result == 0) {
-                            //Omitting atime, ctime, dev, ino, mtime, rdev, since they can break consensus
-                            objOut.writeObject(jnrStat.blocks()); //long
-                            objOut.writeObject(jnrStat.blockSize()); //long
+                            //Omitting atime, ctime, blocks, blockSize, mtime, dev, rdev, ino, since they can break
+                            //consensus. Some of these could potentially be added back depending on the configuration
                             objOut.writeObject(jnrStat.gid()); //int
                             objOut.writeObject(jnrStat.mode()); //int
                             objOut.writeObject(jnrStat.nlink()); //int
@@ -297,6 +289,7 @@ public class BFTServer extends DefaultRecoverable {
     }
 
     // Will move some read operations here when performance becomes an issue
+    // Certain read operations are invoked immediately before writes so this could be tricky
     @SuppressWarnings("unchecked")
     @Override
     public byte[] appExecuteUnordered(byte[] command, MessageContext msgCtx) {
@@ -327,6 +320,8 @@ public class BFTServer extends DefaultRecoverable {
         return reply;
     }
 
+    //Serializes the entire filesystem into a byte array
+    //Limited by max size of byte array, will possibly change in the future
     @Override
     public byte[] getSnapshot() {
         logger.debug("Called getSnapshot");
@@ -364,6 +359,7 @@ public class BFTServer extends DefaultRecoverable {
         return new byte[0];
     }
 
+    //Deletes current filesystem, deserializes byte array, and installs filesystem from getSnapshot
     @SuppressWarnings("unchecked")
     @Override
     public void installSnapshot(byte[] state) {

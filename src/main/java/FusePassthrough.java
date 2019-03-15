@@ -5,14 +5,12 @@ import jnr.ffi.types.off_t;
 import jnr.ffi.types.size_t;
 import jnr.posix.POSIX;
 import jnr.posix.POSIXFactory;
-import jnr.posix.Times;
 import ru.serce.jnrfuse.ErrorCodes;
 import ru.serce.jnrfuse.FuseFillDir;
 import ru.serce.jnrfuse.FuseStubFS;
 import ru.serce.jnrfuse.struct.FileStat;
 import ru.serce.jnrfuse.struct.FuseFileInfo;
 import ru.serce.jnrfuse.struct.Timespec;
-
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
@@ -22,6 +20,16 @@ public class FusePassthrough extends FuseStubFS {
     Logger logger;
     POSIX posix;
     final String mount_path = "/home/cody/Desktop/mntp";
+
+
+    public static void main(String[] args) {
+        FusePassthrough fusePT = new FusePassthrough();
+        try {
+            fusePT.mount(Paths.get(fusePT.mount_path), true, true);
+        } finally {
+            fusePT.umount();
+        }
+    }
 
     public FusePassthrough() {
         posix = POSIXFactory.getPOSIX();
@@ -59,6 +67,7 @@ public class FusePassthrough extends FuseStubFS {
         }
         return result;
     }
+
     @Override
     public int readdir(String path, Pointer buf, FuseFillDir filter, @off_t long offset, FuseFileInfo fi) {
         System.out.printf("Called readdir with path %s\n", path);
@@ -70,17 +79,10 @@ public class FusePassthrough extends FuseStubFS {
             filter.apply(buf, file.getName(), null, 0);
         }
         return 0;
-
     }
 
     @Override
     public int create(String path, @mode_t long mode, FuseFileInfo fi) {
-        System.out.printf("O_CREATE is %d\n", OpenFlags.O_CREAT.intValue());
-        System.out.printf("O_WRONLY is %d\n", OpenFlags.O_WRONLY.intValue());
-        System.out.printf("O_TRUNC is %d\n", OpenFlags.O_TRUNC.intValue());
-        System.out.printf("ORed together these form: %d\n", OpenFlags.O_CREAT.intValue() | OpenFlags.O_WRONLY.intValue() | OpenFlags.O_TRUNC.intValue());
-        System.out.printf("The provided flags are %d\n", fi.flags.intValue());
-
         System.out.printf("Called create with path %s\n", path);
         if (new File(path).exists()) {
             return -ErrorCodes.EEXIST();
@@ -90,11 +92,7 @@ public class FusePassthrough extends FuseStubFS {
         if (result < 0) {
             result = -posix.errno();
         }
-        System.out.printf("The result open in create was %d\n", result);
         return 0;
-
-        //Website said this is equivalent to creat()
-        //open(pathname, O_CREAT|O_WRONLY|O_TRUNC, mode);
     }
 
     @Override
@@ -173,7 +171,6 @@ public class FusePassthrough extends FuseStubFS {
     @Override
     public int read(String path, Pointer buf, @size_t long size, @off_t long offset, FuseFileInfo fi) {
         System.out.printf("Called read with path %s\n", path);
-        System.out.printf("The FuseFileInfo value is %d\n", fi.flags.intValue());
         int fd = posix.open(path, fi.flags.intValue(), OpenFlags.O_RDONLY.intValue());
         if (fd < 0) {
             return -posix.errno();
@@ -205,12 +202,9 @@ public class FusePassthrough extends FuseStubFS {
         return result;
     }
 
-
-
+    //There's probably a better way to do this.
     public void translateFileStat(jnr.posix.FileStat jnrStat, FileStat fuseStat) {
-        //System.out.println("Called translateFileStat");
         fuseStat.st_atim.tv_sec.set(jnrStat.atime());
-        //fuseStat.st_birthtime.set
         fuseStat.st_blksize.set(jnrStat.blockSize());
         fuseStat.st_blocks.set(jnrStat.blocks());
         fuseStat.st_ctim.tv_sec.set(jnrStat.ctime());
@@ -223,15 +217,5 @@ public class FusePassthrough extends FuseStubFS {
         fuseStat.st_rdev.set(jnrStat.rdev());
         fuseStat.st_size.set(jnrStat.st_size());
         fuseStat.st_uid.set(jnrStat.uid());
-
-    }
-
-    public static void main(String[] args) {
-        FusePassthrough fusePT = new FusePassthrough();
-        try {
-            fusePT.mount(Paths.get(fusePT.mount_path), true, true);
-        } finally {
-            fusePT.umount();
-        }
     }
 }
