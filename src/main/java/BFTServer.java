@@ -1,6 +1,3 @@
-
-
-
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
@@ -23,20 +20,20 @@ public class BFTServer extends DefaultRecoverable {
 
     private Logger logger;
     POSIX posix;
-    String rootPath;
+    String replicaPath;
 
     public static void main(String[] args) {
         if(args.length < 2) {
-            System.out.println("Use: java BFTServer <serverID> <rootPath>");
+            System.out.println("Use: java BFTServer <serverID> <replicaPath>");
             System.exit(-1);
         }
         new BFTServer(Integer.parseInt(args[0]), args[1]);
     }
 
-    public BFTServer(int id, String rootPath) {
+    public BFTServer(int id, String replicaPath) {
         logger = LoggerFactory.getLogger(this.getClass());
         try {
-            this.rootPath = Paths.get(rootPath).toRealPath().toString();
+            this.replicaPath = Paths.get(replicaPath).toRealPath().toString();
         } catch (IOException e) {
             logger.error("Unable to resolve provided path: ", e);
             System.exit(-1);
@@ -65,7 +62,7 @@ public class BFTServer extends DefaultRecoverable {
                 String path = (String)objIn.readObject();
                 //Removes any nefarious ../ attempts, then appends to path of the "root" folder
                 path = Paths.get(path).normalize().toString();
-                path = rootPath + path;
+                path = replicaPath + path;
                 switch (operation) {
 
                     case MKDIR:
@@ -103,7 +100,7 @@ public class BFTServer extends DefaultRecoverable {
 
                     case RENAME:
                         logger.debug("Called RENAME with path: " + path);
-                        String newPath = rootPath + (String) objIn.readObject();
+                        String newPath = replicaPath + (String) objIn.readObject();
                         result = posix.rename(path, newPath);
                         if (result < 0) {
                             result = -posix.errno();
@@ -328,12 +325,12 @@ public class BFTServer extends DefaultRecoverable {
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              ObjectOutput objOut = new ObjectOutputStream(byteOut)) {
 
-            List<Path> pathWalk = Files.walk(Paths.get(rootPath)).collect(Collectors.toList());
+            List<Path> pathWalk = Files.walk(Paths.get(replicaPath)).collect(Collectors.toList());
             Collections.sort(pathWalk);
             objOut.writeObject(pathWalk.size());
             for (Path path : pathWalk) {
                 String absolutePath = path.toAbsolutePath().toString();
-                String relativeRoot = absolutePath.replace(rootPath, "");
+                String relativeRoot = absolutePath.replace(replicaPath, "");
                 jnr.posix.FileStat jnrStat = posix.allocateStat();
                 if (posix.lstat(absolutePath, jnrStat) < 0) {
                     logger.error("Error getting FileStat in getSnapshot");
@@ -368,14 +365,14 @@ public class BFTServer extends DefaultRecoverable {
              ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
             //Clear out old state
-            String[] args = {"rm", "-rf", rootPath };
+            String[] args = {"rm", "-rf", replicaPath };
             Process process = java.lang.Runtime.getRuntime().exec(args);
             process.waitFor();
 
             int entryCount = (int)objIn.readObject();
             for (int i = 0; i < entryCount; i++) {
 
-                String absolutePath = rootPath + (String)objIn.readObject();
+                String absolutePath = replicaPath + (String)objIn.readObject();
                 int gid = (int)objIn.readObject();
                 boolean isDirectory = (boolean)objIn.readObject();
                 int mode = (int)objIn.readObject();
