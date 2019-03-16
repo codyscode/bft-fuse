@@ -62,8 +62,8 @@ directory where a replica will store its files. The demo.sh script sets
 replicaPath to be bft-fuse/replicas/replica* but you can change this to anywhere 
 you want as long as it's initially empty or contains the exact same contents as 
 the other replicas. Don't set this to anywhere critical, like your root 
-directory, as the protocol can periodically delete files in this directory when
-a state transfer is triggered.
+directory, as the protocol can periodically delete this directory when a state
+transfer is triggered.
 
 Clients (BFTFuse.java) require two arguments: the clientID, for the BFT-SMaRt 
 protocol, and the mountPath, which is the directory the FUSE filesystem will be
