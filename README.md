@@ -1,10 +1,14 @@
 # Byzantine Fault-Tolerant FUSE Filesystem
-A Byzantine fault-tolerant filesystem implemented with [BFT-SMaRt](https://github.com/bft-smart/library), [jnr-fuse](https://github.com/SerCeMan/jnr-fuse), and [jnr-posix](https://github.com/jnr/jnr-posix).
+A Byzantine fault-tolerant filesystem implemented with [BFT-SMaRt](https://github.com/bft-smart/library),
+[jnr-fuse](https://github.com/SerCeMan/jnr-fuse), and [jnr-posix](https://github.com/jnr/jnr-posix).  
+The goal of this project is to create a filesystem which appears to the client
+to be a mounted filesystem but is actually coordinating with replicas beind the
+scenes using the BFT-SMaRt library.
 
 **NOTE:** Since this makes changes to the underlying filesystem on each replica, 
-I recommend running this on a VM or freshly imaged system. Whichever directory you
-attach a replica to can be deleted at any time by the state transfer mechanism. 
-I've tested on Ubuntu but this should work on any POSIX system.
+I recommend running replicas on a VM or non-critical system. Whichever directory 
+you attach a replica to can be deleted at any time by the state transfer 
+mechanism. I've tested on Ubuntu but this should work on most POSIX systems.
 
 ## Getting Started with Demo
 1.) Download the repo, and cd into bft-fuse  
@@ -27,7 +31,7 @@ can start the client(s).
 ```
 ./demo.sh client 0
 ```
-You should now see a mounted direcotry at bft-fuse/clients/client0. Any changes
+You should now see a mounted directory at bft-fuse/clients/client0. Any changes
 made in this directory will be replicated to the replica directories located in 
 bft-fuse/replicas/replica*
 
@@ -60,11 +64,13 @@ you want as long as it's initially empty or contains the exact same contents as
 the other replicas. Don't set this to anywhere critical, like your root 
 directory, as the protocol can periodically delete files in this directory.
 
-Clients (BFTFuse.java) require two argumets: the clientID, for the BFT-SMaRt 
+Clients (BFTFuse.java) require two arguments: the clientID, for the BFT-SMaRt 
 protocol, and the mountPath, which is the directory the FUSE filesystem will be
 mounted to. The demo.sh script sets mountPath to be bft-fuse/clients/client* but 
 you can set this to any empty directory.
 
-
+## Side Notes
+There are currently 14 filesystem operations implemented, enough to have a 
+decent working filesystem, but I hope to add more in the future.
 
 

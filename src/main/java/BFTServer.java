@@ -42,6 +42,7 @@ public class BFTServer extends DefaultRecoverable {
         new ServiceReplica(id, this, this);
     }
 
+    //This is the same as appExecuteOrdered in DefaultSingleRecoverable but is allegedly more stable.
     @SuppressWarnings("unchecked")
     @Override
     public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtx, boolean fromConsensus) {
@@ -60,7 +61,7 @@ public class BFTServer extends DefaultRecoverable {
                 long mode, size, offset, uid, gid;
                 FSOperation operation = (FSOperation) objIn.readObject();
                 String path = (String)objIn.readObject();
-                //Removes any nefarious ../ attempts, then appends to path of the "root" folder
+                //Removes any nefarious ../ attempts, then appends to the replicaPath
                 path = Paths.get(path).normalize().toString();
                 path = replicaPath + path;
                 switch (operation) {
