@@ -1,4 +1,4 @@
-# Byzantine Fault-Tolerant FUSE Filesystem
+# Byzantine Fault-Tolerant Replicated FUSE Filesystem
 A Byzantine fault-tolerant replicated filesystem implemented with [BFT-SMaRt](https://github.com/bft-smart/library),
 [jnr-fuse](https://github.com/SerCeMan/jnr-fuse), and [jnr-posix](https://github.com/jnr/jnr-posix).  
 The goal of this project is to create a filesystem which appears to the client
