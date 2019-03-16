@@ -7,8 +7,8 @@ scenes using the BFT-SMaRt library.
 
 **NOTE:** Since this makes changes to the underlying filesystem on each replica, 
 I recommend running replicas on a VM or non-critical system. Whichever directory 
-you attach a replica to can be deleted at any time by the state transfer 
-mechanism. I've tested on Ubuntu but this should work on most POSIX systems.
+you attach a replica's replicaPath to can be deleted at any time by the state 
+transfer mechanism. I've tested on Ubuntu but this should work on most POSIX systems.
 
 ## Getting Started with Demo
 1.) Download the repo, and cd into bft-fuse  
