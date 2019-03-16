@@ -2,7 +2,7 @@
 A Byzantine fault-tolerant filesystem implemented with [BFT-SMaRt](https://github.com/bft-smart/library),
 [jnr-fuse](https://github.com/SerCeMan/jnr-fuse), and [jnr-posix](https://github.com/jnr/jnr-posix).  
 The goal of this project is to create a filesystem which appears to the client
-to be a mounted filesystem but is actually coordinating with replicas beind the
+to be a mounted filesystem but is coordinating with multiple replicas beind the
 scenes using the BFT-SMaRt library.
 
 **NOTE:** Since this makes changes to the underlying filesystem on each replica, 
@@ -51,10 +51,10 @@ date.
 
 ## Customizing Configuration
 The hosts.config file contains the network configuration of the replicas. The 
-default configuration is to simply run four replicas on the same machine, but 
-this can easily be changed by editing hosts.config. I recommend reading the 
-[BFT-SMaRt](https://github.com/bft-smart/library) documentation for this as it 
-will be the same.
+default configuration is to run four replicas and all clients on the same 
+machine, but this can easily be changed by editing hosts.config. I recommend 
+reading the [BFT-SMaRt](https://github.com/bft-smart/library) documentation for 
+this as it will be the same.
 
 Replicas (BFTServer.java) require two arguments: the serverID, which corresponds 
 to the serverID provided in hosts.config, and the replicaPath, which is the 
@@ -62,7 +62,8 @@ directory where a replica will store its files. The demo.sh script sets
 replicaPath to be bft-fuse/replicas/replica* but you can change this to anywhere 
 you want as long as it's initially empty or contains the exact same contents as 
 the other replicas. Don't set this to anywhere critical, like your root 
-directory, as the protocol can periodically delete files in this directory.
+directory, as the protocol can periodically delete files in this directory when
+a state transfer is triggered.
 
 Clients (BFTFuse.java) require two arguments: the clientID, for the BFT-SMaRt 
 protocol, and the mountPath, which is the directory the FUSE filesystem will be
