@@ -7,7 +7,7 @@ attach a replica to can be deleted at any time by the state transfer mechanism.
 I've tested on Ubuntu but this should work on any POSIX system.
 
 ## Getting Started with Demo
-1.) Download the repo, and cd into bft-fuse
+1.) Download the repo, and cd into bft-fuse  
 2.) To build the project, install gradle then run: 
 ```
 ./demo.sh build
@@ -49,20 +49,21 @@ date.
 The hosts.config file contains the network configuration of the replicas. The 
 default configuration is to simply run four replicas on the same machine, but 
 this can easily be changed by editing hosts.config. I recommend reading the 
-[BFT-SMaRt](https://github.com/bft-smart/library) documentation for this as it will be the same.
+[BFT-SMaRt](https://github.com/bft-smart/library) documentation for this as it 
+will be the same.
 
 Replicas (BFTServer.java) require two arguments: the serverID, which corresponds 
 to the serverID provided in hosts.config, and the replicaPath, which is the 
-directory where a replica will store its files. The demo.sh script sets this to 
-be bft-fuse/replicas/replica* but you can change this to anywhere you want so 
-long as it's initially empty or contains the exact same contents as the other 
-replicas. Don't set this to anywhere critical, like your root directory, as the
-protocol can periodically delete files in this directory.
+directory where a replica will store its files. The demo.sh script sets 
+replicaPath to be bft-fuse/replicas/replica* but you can change this to anywhere 
+you want as long as it's initially empty or contains the exact same contents as 
+the other replicas. Don't set this to anywhere critical, like your root 
+directory, as the protocol can periodically delete files in this directory.
 
 Clients (BFTFuse.java) require two argumets: the clientID, for the BFT-SMaRt 
 protocol, and the mountPath, which is the directory the FUSE filesystem will be
-mounted to. The demo.sh script sets this to be bft-fuse/clients/client* but you
-can set this to any empty directory.
+mounted to. The demo.sh script sets mountPath to be bft-fuse/clients/client* but 
+you can set this to any empty directory.
 
 
 
